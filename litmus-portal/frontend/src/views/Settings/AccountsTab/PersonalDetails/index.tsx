@@ -11,7 +11,7 @@ import {
   CurrentUserDedtailsVars,
   CurrentUserDetails,
 } from '../../../../models/graphql/user';
-import { UpdateUser } from '../../../../models/userData';
+import { UpdateUser, CurrentUserData } from '../../../../models/userData';
 import { getToken, getUsername } from '../../../../utils/auth';
 import useStyles from './styles';
 
@@ -29,10 +29,27 @@ const PersonalDetails: React.FC = () => {
   const username = getUsername();
   const [loading, setLoading] = React.useState(false);
   // Query to get user details
+  const [memberDetails, setMemberDetails] = useState<CurrentUserData>();
+  // const { data: dataA } = useQuery<CurrentUserDetails, CurrentUserDedtailsVars>(
+  //   GET_USER,
+  //   { variables: { username } }
+  // );
   const { data: dataA } = useQuery<CurrentUserDetails, CurrentUserDedtailsVars>(
     GET_USER,
-    { variables: { username } }
+    {
+      variables: { username },
+      onCompleted: (data) => {
+        setMemberDetails({
+          name: data.getUser.name,
+          uid: data.getUser.id,
+          username: data.getUser.username,
+          role: data.getUser.role,
+          email: data.getUser.email,
+        });
+      },
+    }
   );
+
   const [error, setError] = useState<string>('');
   const name: string = dataA?.getUser.name ?? ''; // TODO: Check if can be replaced with JWT based data.
   const email: string = dataA?.getUser.email ?? '';
@@ -54,18 +71,34 @@ const PersonalDetails: React.FC = () => {
     });
   };
   const handleNameChange = (e: any) => {
-    setPersonaData({
-      fullName: e.target.value,
-      userName: personaData.userName,
-      email: personaData.email,
-    });
+    const { value } = e.target;
+    if (value !== '')
+      setPersonaData({
+        fullName: e.target.value,
+        userName: personaData.userName,
+        email: personaData.email,
+      });
+    else
+      setPersonaData({
+        fullName: ' ',
+        userName: personaData.userName,
+        email: personaData.email,
+      });
   };
   const handleEmailChange = (e: any) => {
+    // const { name, value} = e.target;
+    // if(value!=='')
     setPersonaData({
       fullName: personaData.fullName,
       userName: personaData.userName,
       email: e.target.value,
     });
+    // else
+    // setPersonaData({
+    //   fullName: personaData.fullName,
+    //   userName: personaData.userName,
+    //   email: '',
+    // });
   };
   const [updateDetails] = useMutation<UpdateUser>(UPDATE_DETAILS, {
     onCompleted: () => {
@@ -95,11 +128,27 @@ const PersonalDetails: React.FC = () => {
     })
       .then((response) => response.json())
       .then((data) => {
-        if ('error' in data) {
+        if ('error' in data.fullName) {
           setError(data.error_description as string);
           setLoading(false);
           setOpen(true);
-        } else {
+          setPersonaData({
+            fullName: '',
+            userName: personaData.userName,
+            email: personaData.email,
+          });
+        }
+        // else if ('error' in data.email){
+        //   setError(data.error_description as string);
+        //   setLoading(false);
+        //   setOpen(true);
+        //   setPersonaData({
+        //     fullName: personaData.fullName,
+        //     userName: personaData.userName,
+        //     email: '',
+        //   });
+        // }
+        else {
           updateDetails({
             variables: {
               user: {
@@ -115,6 +164,11 @@ const PersonalDetails: React.FC = () => {
         setError(err.message as string);
         setOpen(true);
         setLoading(false);
+        setPersonaData({
+          fullName: '',
+          userName: personaData.userName,
+          email: '',
+        });
         console.error(err);
       });
   };
@@ -122,10 +176,22 @@ const PersonalDetails: React.FC = () => {
     <div>
       <form>
         <UserDetails
-          nameValue={personaData.fullName}
+          nameValue={
+            personaData.fullName
+              ? personaData.fullName
+              : memberDetails
+              ? memberDetails.name
+              : ''
+          }
           isUsernameDisabled
           handleNameChange={handleNameChange}
-          emailValue={personaData.email}
+          emailValue={
+            personaData.email
+              ? personaData.email
+              : memberDetails
+              ? memberDetails.email
+              : ''
+          }
           handleEmailChange={handleEmailChange}
           userValue={personaData.userName}
           handleUserChange={handleUserChange}
@@ -135,7 +201,13 @@ const PersonalDetails: React.FC = () => {
         <div className={classes.saveButton}>
           <div data-cy="save">
             <ButtonFilled
-              disabled={!(personaData.fullName.length && !loading)}
+              disabled={
+                !(
+                  !(personaData.fullName === undefined) &&
+                  personaData.fullName.length &&
+                  !loading
+                )
+              }
               onClick={handleSubmit}
             >
               {loading ? (
