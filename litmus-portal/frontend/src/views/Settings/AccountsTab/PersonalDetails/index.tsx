@@ -72,13 +72,19 @@ const PersonalDetails: React.FC = () => {
   };
   const handleNameChange = (e: any) => {
     const { value } = e.target;
-    if (value !== '')
+    if (value !== '') {
+      // if(e.target.value.charAt(0)===' ' ?e.target.value.substr(1):e.target.value){
+      const str =
+        e.target.value.charAt(0) === ' '
+          ? e.target.value.substr(1)
+          : e.target.value;
+      // }
       setPersonaData({
-        fullName: e.target.value,
+        fullName: str,
         userName: personaData.userName,
         email: personaData.email,
       });
-    else
+    } else
       setPersonaData({
         fullName: ' ',
         userName: personaData.userName,
@@ -86,19 +92,11 @@ const PersonalDetails: React.FC = () => {
       });
   };
   const handleEmailChange = (e: any) => {
-    // const { name, value} = e.target;
-    // if(value!=='')
     setPersonaData({
       fullName: personaData.fullName,
       userName: personaData.userName,
       email: e.target.value,
     });
-    // else
-    // setPersonaData({
-    //   fullName: personaData.fullName,
-    //   userName: personaData.userName,
-    //   email: '',
-    // });
   };
   const [updateDetails] = useMutation<UpdateUser>(UPDATE_DETAILS, {
     onCompleted: () => {
@@ -128,7 +126,7 @@ const PersonalDetails: React.FC = () => {
     })
       .then((response) => response.json())
       .then((data) => {
-        if ('error' in data.fullName) {
+        if ('error' in data) {
           setError(data.error_description as string);
           setLoading(false);
           setOpen(true);
@@ -137,18 +135,7 @@ const PersonalDetails: React.FC = () => {
             userName: personaData.userName,
             email: personaData.email,
           });
-        }
-        // else if ('error' in data.email){
-        //   setError(data.error_description as string);
-        //   setLoading(false);
-        //   setOpen(true);
-        //   setPersonaData({
-        //     fullName: personaData.fullName,
-        //     userName: personaData.userName,
-        //     email: '',
-        //   });
-        // }
-        else {
+        } else {
           updateDetails({
             variables: {
               user: {
@@ -164,11 +151,6 @@ const PersonalDetails: React.FC = () => {
         setError(err.message as string);
         setOpen(true);
         setLoading(false);
-        setPersonaData({
-          fullName: '',
-          userName: personaData.userName,
-          email: '',
-        });
         console.error(err);
       });
   };
@@ -180,7 +162,9 @@ const PersonalDetails: React.FC = () => {
             personaData.fullName
               ? personaData.fullName
               : memberDetails
-              ? memberDetails.name
+              ? memberDetails.name.charAt(0) === ' '
+                ? memberDetails.name.substr(1)
+                : memberDetails.name
               : ''
           }
           isUsernameDisabled
